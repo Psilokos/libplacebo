@@ -395,9 +395,12 @@ static bool update_swapchain_info(struct priv *p, VkSwapchainCreateInfoKHR *info
     if (caps.currentExtent.height != 0xFFFFFFFF)
         h = PL_DEF(h, caps.currentExtent.height);
 
+    PL_ERR(vk, "First step extent size: %d %d ", w, h);
+
     // Otherwise, re-use the existing size if available
     w = PL_DEF(w, info->imageExtent.width);
     h = PL_DEF(h, info->imageExtent.height);
+    PL_ERR(vk, "Second step extent size: %d %d ", w, h);
 
     if (!w || !h) {
         PL_ERR(vk, "Failed resizing swapchain: unknown size?");
@@ -407,6 +410,8 @@ static bool update_swapchain_info(struct priv *p, VkSwapchainCreateInfoKHR *info
     // Clamp the extent based on the supported limits
     w = PL_MIN(PL_MAX(w, caps.minImageExtent.width), caps.maxImageExtent.width);
     h = PL_MIN(PL_MAX(h, caps.minImageExtent.height), caps.maxImageExtent.height);
+
+    PL_ERR(vk, "Clamped extent size: %d %d ", w, h);
 
     // We just request whatever usage we can, and let the pl_vk decide what
     // pl_tex_params that translates to. This makes the images as flexible
@@ -453,7 +458,10 @@ static bool vk_sw_recreate(const struct pl_swapchain *sw, int w, int h)
     sinfo.oldSwapchain = p->swapchain;
 
     if (!update_swapchain_info(p, &sinfo, w, h))
+    {
+        PL_ERR(vk, "Cannot update swapchain info with %dx%d", w, h);
         goto error;
+    }
 
     PL_INFO(sw, "(Re)creating swapchain of size %dx%d",
             sinfo.imageExtent.width,

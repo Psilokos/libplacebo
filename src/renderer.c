@@ -2841,7 +2841,10 @@ static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
             .sample_mode = tex->params.sample_mode,
         };
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < num_passes_done; i++)
+            rr->ravu_hack_fbos[i] = ravu_passes[i].texture;
+
+        for (int i = num_passes_done; i < 3; i++)
             pl_tex_recreate(rr->gpu, &rr->ravu_hack_fbos[i], &tex_params);
 
         tex_params.w *= 2;
@@ -2849,19 +2852,26 @@ static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
         pl_tex_recreate(rr->gpu, &rr->ravu_hack_fbos[3], &tex_params);
 
         struct pl_shader *sh = pl_dispatch_begin(rr->dp);
-        pl_shader_ravu_r3_hack(sh, 0, &(struct pl_sample_src) { .tex = tex },
-                               rr->ravu_tex, rr->ravu_hack_fbos);
-        pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[0], NULL, NULL);
+        if (num_passes_done <= 0) {
+            sh = pl_dispatch_begin(rr->dp);
+            pl_shader_ravu_r3_hack(sh, 0, &(struct pl_sample_src) { .tex = tex },
+                                   rr->ravu_tex, rr->ravu_hack_fbos);
+            pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[0], NULL, NULL);
+        }
 
-        sh = pl_dispatch_begin(rr->dp);
-        pl_shader_ravu_r3_hack(sh, 1, &(struct pl_sample_src) { .tex = tex },
-                               rr->ravu_tex, rr->ravu_hack_fbos);
-        pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[1], NULL, NULL);
+        if (num_passes_done <= 1) {
+            sh = pl_dispatch_begin(rr->dp);
+            pl_shader_ravu_r3_hack(sh, 1, &(struct pl_sample_src) { .tex = tex },
+                                   rr->ravu_tex, rr->ravu_hack_fbos);
+            pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[1], NULL, NULL);
+        }
 
-        sh = pl_dispatch_begin(rr->dp);
-        pl_shader_ravu_r3_hack(sh, 2, &(struct pl_sample_src) { .tex = tex },
-                               rr->ravu_tex, rr->ravu_hack_fbos);
-        pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[2], NULL, NULL);
+        if (num_passes_done <= 2) {
+            sh = pl_dispatch_begin(rr->dp);
+            pl_shader_ravu_r3_hack(sh, 2, &(struct pl_sample_src) { .tex = tex },
+                                   rr->ravu_tex, rr->ravu_hack_fbos);
+            pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[2], NULL, NULL);
+        }
 
         sh = pl_dispatch_begin(rr->dp);
         pl_shader_ravu_r3_hack(sh, 3, &(struct pl_sample_src) {

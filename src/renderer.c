@@ -2812,7 +2812,9 @@ static const uint8_t ravu_tex[] = {
 
 static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
                             struct pl_rect2d *rc,
-                            const struct pl_render_params *params)
+                            const struct pl_render_params *params,
+                            int num_passes_done,
+                            const struct pl_plane *ravu_passes)
 {
     if (params->enable_luma_ravu_hack_r3) {
         const struct pl_tex *tex = plane->texture;
@@ -2935,7 +2937,7 @@ static bool pass_read_image(struct pl_renderer *rr, struct pass_state *pass,
     };
 
     // XXX luma prescaler hacks
-    pass_luma_hacks(rr, refplane, &rc, params);
+    pass_luma_hacks(rr, refplane, &rc, params, image->num_ravu_passes, image->ravu_passes);
 
     float ref_w = refplane->texture->params.w,
           ref_h = refplane->texture->params.h;

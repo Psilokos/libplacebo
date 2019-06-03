@@ -302,6 +302,9 @@ struct pl_image {
     int num_planes;
     struct pl_plane planes[PL_MAX_PLANES];
 
+    int num_ravu_passes;
+    struct pl_plane ravu_passes[3];
+
     // Color representation / encoding / semantics associated with this image.
     struct pl_color_repr repr;
     struct pl_color_space color;

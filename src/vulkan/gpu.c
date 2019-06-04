@@ -2618,8 +2618,6 @@ static void vk_pass_run(const struct pl_gpu *gpu,
             .height = pl_rect_h(params->viewport),
         };
 
-        PL_ERR(vk, "Viewport %lf %lf %lf %lf", viewport.x, viewport.y, viewport.width, viewport.height);
-
         VkRect2D scissor = {
             .offset = {params->scissors.x0, params->scissors.y0},
             .extent = {pl_rect_w(params->scissors), pl_rect_h(params->scissors)},

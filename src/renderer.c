@@ -2913,7 +2913,7 @@ static bool pass_read_image(struct pl_renderer *rr, struct pass_state *pass,
     // This should ideally be the plane that most closely matches the target
     // image size
     struct pl_plane planes[4];
-    const struct pl_plane *refplane = NULL; // points to one of `planes`
+    struct pl_plane *refplane = NULL; // points to one of `planes`
     int best_diff = 0, best_off = 0;
 
     pl_assert(image->num_planes < PLANE_COUNT);

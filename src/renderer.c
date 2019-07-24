@@ -16,6 +16,7 @@
  */
 
 #include <math.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "shaders.h"
@@ -118,6 +119,7 @@ static void find_fbo_format(struct pl_renderer *rr)
         fmt = pl_find_fmt(rr->gpu, configs[i].type, 4, configs[i].depth, 0,
                           configs[i].caps | PL_FMT_CAP_RENDERABLE);
         if (fmt) {
+            PL_INFO(rr, "fbofmt found at iteration %d\n", i);
             rr->fbofmt = fmt;
             break;
         }
@@ -2839,6 +2841,7 @@ static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
             .renderable = true,
             .storable = tex->params.storable,
             .sample_mode = tex->params.sample_mode,
+            .host_readable = true,
         };
 
         for (int i = 0; i < num_passes_done; i++)
@@ -2857,6 +2860,34 @@ static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
             pl_shader_ravu_r3_hack(sh, 0, &(struct pl_sample_src) { .tex = tex },
                                    rr->ravu_tex, rr->ravu_hack_fbos);
             pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[0], NULL, NULL);
+
+            uint16_t *cpu_buf = calloc(tex->params.w * tex->params.h * 4,
+                                   sizeof(int16_t));
+            pl_assert(cpu_buf);
+            pl_tex_download(rr->gpu, &(struct pl_tex_transfer_params)
+                {
+                    .tex = rr->ravu_hack_fbos[0],
+                    .stride_w = tex->params.w,
+                    .ptr = cpu_buf,
+                });
+            FILE *fp = fopen("gpu_pass0", "w");
+            pl_assert(fp);
+            fprintf(fp, "GPU PASS 0 (%dx%d)\n", tex->params.w, tex->params.h);
+            for (int i = 0; i < tex->params.h; ++i)
+            {
+                for (int j = 0; j < tex->params.w; ++j)
+                {
+                    uint16_t const v = cpu_buf[i * tex->params.w * 4 + j * 4];
+                    int const s = v & 0x8000 ? -1 : +1;
+                    int const e = (v % 0x8000) / 0x400;
+                    float const m = v % 0x400;
+                    float const fv = s * powf(2, e - 15) * (1 + m / 0x400);
+                    fprintf(fp, "%02X ", (uint8_t)roundf(fv * 255));
+                }
+                fprintf(fp, "\n");
+            }
+            fclose(fp);
+            free(cpu_buf);
         }
 
         if (num_passes_done <= 1) {

@@ -2846,6 +2846,39 @@ static void vk_gpu_finish(const struct pl_gpu *gpu)
     vk_wait_idle(vk);
 }
 
+static VkQueryPool query_pool;
+
+static void vk_cmd_write_ts(const struct pl_gpu *gpu, uint32_t query_id)
+{
+    static int init = 0;
+    if (!init)
+    {
+        struct vk_ctx *vkctx = pl_vk_get(gpu);
+        VkQueryPoolCreateInfo create_info = {};
+        create_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+        create_info.pNext = NULL;
+        create_info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+        create_info.queryCount = 2;
+        VkResult res = vkCreateQueryPool(vkctx->dev, &create_info, NULL, &query_pool);
+        pl_assert(res == VK_SUCCESS);
+        init = 1;
+    }
+    struct vk_cmd *cmd = vk_require_cmd(gpu, COMPUTE);
+    if (query_id == 0)
+        vkCmdResetQueryPool(cmd->buf, query_pool, 0, 2);
+    vkCmdWriteTimestamp(cmd->buf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, query_pool, query_id);
+}
+
+static uint64_t vk_get_bench(const struct pl_gpu *gpu)
+{
+    uint64_t ts[2] = {0};
+    struct vk_ctx *vkctx = pl_vk_get(gpu);
+    vkGetQueryPoolResults(vkctx->dev, query_pool, 0, 2,
+                          2 * sizeof(uint64_t), ts, sizeof(uint64_t),
+                          VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+    return ts[1] - ts[0];
+}
+
 struct vk_cmd *pl_vk_steal_cmd(const struct pl_gpu *gpu)
 {
     struct pl_vk *p = gpu->priv;
@@ -2878,4 +2911,6 @@ static struct pl_gpu_fns pl_fns_vk = {
     .tex_export             = vk_tex_export,
     .gpu_flush              = vk_gpu_flush,
     .gpu_finish             = vk_gpu_finish,
+    .cmd_write_ts           = vk_cmd_write_ts,
+    .get_bench              = vk_get_bench,
 };

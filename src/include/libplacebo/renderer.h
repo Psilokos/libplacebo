@@ -398,6 +398,8 @@ bool pl_render_image(struct pl_renderer *rr, const struct pl_image *image,
                      const struct pl_render_target *target,
                      const struct pl_render_params *params);
 
+uint64_t pl_ravu_mean_delta(struct pl_renderer const *rr);
+
 /* TODO
 
 // Represents a mixture of input images, distributed temporally.

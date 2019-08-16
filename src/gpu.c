@@ -20,6 +20,16 @@
 #include "shaders.h"
 #include "gpu.h"
 
+void pl_cmd_write_ts(const struct pl_gpu *gpu, uint32_t query_id)
+{
+    gpu->impl->cmd_write_ts(gpu, query_id);
+}
+
+uint64_t pl_get_bench(const struct pl_gpu *gpu)
+{
+    return gpu->impl->get_bench(gpu);
+}
+
 int pl_optimal_transfer_stride(const struct pl_gpu *gpu, int dimension)
 {
     return PL_ALIGN2(dimension, gpu->limits.align_tex_xfer_stride);

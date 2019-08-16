@@ -20,6 +20,9 @@
 #include "common.h"
 #include "context.h"
 
+void pl_cmd_write_ts(const struct pl_gpu *, uint32_t query_id);
+uint64_t pl_get_bench(const struct pl_gpu *);
+
 #define GPU_PFN(name) __typeof__(pl_##name) *name
 struct pl_gpu_fns {
     // Destructors: These also free the corresponding objects, but they
@@ -49,6 +52,8 @@ struct pl_gpu_fns {
     GPU_PFN(tex_export); // optional if !gpu->export_caps.sync
     GPU_PFN(gpu_flush); // optional
     GPU_PFN(gpu_finish);
+    GPU_PFN(cmd_write_ts);
+    GPU_PFN(get_bench);
 };
 #undef GPU_PFN
 

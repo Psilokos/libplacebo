@@ -89,6 +89,9 @@ struct pl_renderer {
 
     const struct pl_tex *ravu_tex;
     const struct pl_tex *ravu_hack_fbos[4];
+
+    uint64_t ravu_elapsed_time;
+    uint64_t ravu_num_frames;
 };
 
 static void find_fbo_format(struct pl_renderer *rr)
@@ -154,6 +157,8 @@ struct pl_renderer *pl_renderer_create(struct pl_context *ctx,
         .gpu  = gpu,
         .ctx = ctx,
         .dp  = pl_dispatch_create(ctx, gpu),
+        .ravu_elapsed_time = 0,
+        .ravu_num_frames = 0,
     };
 
     assert(rr->dp);
@@ -2851,6 +2856,8 @@ static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
         tex_params.h *= 2;
         pl_tex_recreate(rr->gpu, &rr->ravu_hack_fbos[3], &tex_params);
 
+        pl_cmd_write_ts(rr->gpu, 0);
+
         struct pl_shader *sh = pl_dispatch_begin(rr->dp);
         if (num_passes_done <= 0) {
             sh = pl_dispatch_begin(rr->dp);
@@ -2880,6 +2887,10 @@ static void pass_luma_hacks(struct pl_renderer *rr, struct pl_plane *plane,
             .new_h = tex->params.h * 2,
         }, rr->ravu_tex, rr->ravu_hack_fbos);
         pl_dispatch_finish(rr->dp, &sh, rr->ravu_hack_fbos[3], NULL, NULL);
+
+        pl_cmd_write_ts(rr->gpu, 1);
+        rr->ravu_elapsed_time += pl_get_bench(rr->gpu);
+        rr->ravu_num_frames++;
 
         // TODO: adjust rc/offset
         plane->texture = rr->ravu_hack_fbos[3];
@@ -3343,4 +3354,11 @@ void pl_render_target_from_swapchain(struct pl_render_target *out_target,
         .repr = frame->color_repr,
         .color = frame->color_space,
     };
+}
+
+uint64_t pl_ravu_mean_delta(struct pl_renderer const *rr)
+{
+    if (rr->ravu_num_frames == 0)
+        return -1;
+    return rr->ravu_elapsed_time / rr->ravu_num_frames;
 }
